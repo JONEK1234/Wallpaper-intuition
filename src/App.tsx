@@ -285,7 +285,8 @@ export default function App() {
     const saved = localStorage.getItem('ios_custom_photos');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         return DEFAULT_USER_PHOTOS;
       }
@@ -297,7 +298,8 @@ export default function App() {
     const saved = localStorage.getItem('ios_custom_grid_items');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         return INITIAL_GRID_ITEMS;
       }
@@ -309,7 +311,8 @@ export default function App() {
     const saved = localStorage.getItem('ios_custom_dock_items');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         return INITIAL_DOCK_ITEMS;
       }
@@ -328,7 +331,11 @@ export default function App() {
   const [activePage, setActivePage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(() => {
     const saved = localStorage.getItem('ios_custom_total_pages');
-    return saved ? parseInt(saved, 10) : 2;
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return 2;
   });
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -493,25 +500,29 @@ export default function App() {
 
   // Export fully client-side single HTML application file download
   const handleExportOfflineHtml = () => {
-    const gridItemsJson = JSON.stringify(gridItems);
-    const dockItemsJson = JSON.stringify(dockItems);
+    const gridItemsJson = JSON.stringify(gridItems).replace(/</g, '\\u003c');
+    const dockItemsJson = JSON.stringify(dockItems).replace(/</g, '\\u003c');
     const backgroundUrlEscaped = backgroundUrl.replace(/"/g, '&quot;');
     
     const htmlContent = `<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>iPhone iScreen - App Offline</title>
+  <!-- Google Fonts Pairing -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     body {
-      background-color: #030712;
+      background-color: #000000;
       color: #f3f4f6;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -524,7 +535,7 @@ export default function App() {
     .pages-slider {
       display: flex;
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      height: 440px;
+      height: 100%;
     }
     .page-screen {
       min-width: 100%;
@@ -532,10 +543,10 @@ export default function App() {
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
+<body class="fixed inset-0 w-screen h-screen bg-black overflow-hidden m-0 p-0 flex items-center justify-center select-none">
 
-  <!-- Interactive Simulator Screen -->
-  <div id="iphone-wrapper" class="w-[375px] h-[780px] sm:w-[410px] sm:h-[860px] rounded-[52px] border-[10px] border-slate-800 bg-black relative flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] overflow-hidden transition-all duration-500 ring-4 ring-slate-800/50">
+  <!-- Interactive Simulator Screen: elegant mockup frame centered and scaled to fit screen perfectly -->
+  <div id="iphone-wrapper" class="bg-black flex flex-col overflow-hidden shadow-2xl relative" style="width: 390px; height: 844px; border-radius: 48px; border: 10px solid #1e293b; transform-origin: center center; shrink: 0;">
     
     <!-- Wallpaper background -->
     <div class="absolute inset-0 bg-cover bg-center transition-all duration-700" style="background-image: url('${backgroundUrlEscaped}');"></div>
@@ -548,7 +559,7 @@ export default function App() {
     </div>
 
     <!-- Status Bar -->
-    <div class="h-10 px-6 flex justify-between items-end pb-1.5 text-white font-semibold text-[12px] z-30 relative select-none">
+    <div class="h-14 pt-5 px-6 flex justify-between items-end pb-1.5 text-white font-semibold text-[12.5px] z-30 relative select-none">
       <span id="live-time">12:00</span>
       <div class="flex items-center gap-1.5">
         <i data-lucide="signal" class="w-3.5 h-3.5"></i>
@@ -564,11 +575,11 @@ export default function App() {
       </div>
     </div>
     
-    <!-- Arrows for slide on desktop -->
-    <button onclick="prevPage()" class="absolute left-2.5 top-[40%] transform -translate-y-1/2 bg-black/40 hover:bg-black/60 border border-white/10 text-white p-2 rounded-full z-30 transition-all">
+    <!-- Arrows for slide on desktop (hidden on mobile) -->
+    <button onclick="prevPage()" class="absolute left-2.5 top-[50%] transform -translate-y-1/2 bg-black/35 hover:bg-black/60 border border-white/5 text-white/60 hover:text-white p-1.5 rounded-full z-30 transition-all active:scale-95 hidden sm:block">
       <i data-lucide="chevron-left" class="w-4 h-4"></i>
     </button>
-    <button onclick="nextPage()" class="absolute right-2.5 top-[40%] transform -translate-y-1/2 bg-black/40 hover:bg-black/60 border border-white/10 text-white p-2 rounded-full z-30 transition-all">
+    <button onclick="nextPage()" class="absolute right-2.5 top-[50%] transform -translate-y-1/2 bg-black/35 hover:bg-black/60 border border-white/5 text-white/60 hover:text-white p-1.5 rounded-full z-30 transition-all active:scale-95 hidden sm:block">
       <i data-lucide="chevron-right" class="w-4 h-4"></i>
     </button>
 
@@ -585,31 +596,20 @@ export default function App() {
     </div>
 
     <!-- Home Indicator -->
-    <div class="h-5 flex items-center justify-center pb-2 z-30 relative select-none">
+    <div class="h-7 pb-3 flex items-center justify-center z-30 relative select-none">
       <div class="w-[110px] h-1.5 bg-white/80 rounded-full"></div>
     </div>
 
-    <!-- Fullscreen photo overlay -->
-    <div id="photo-overlay" class="absolute inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col justify-between p-4 hidden">
-      <div class="flex justify-between items-center text-white p-2">
-        <span class="text-xs uppercase font-semibold text-neutral-400">Anteprima Foto</span>
-        <button onclick="closePhotoOverlay()" class="bg-neutral-800 hover:bg-neutral-700 text-white rounded-full p-2 border border-neutral-700 transition-all">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <div class="flex-1 flex items-center justify-center p-2">
-        <img id="overlay-img" src="" class="max-w-full max-h-[80%] rounded-2xl object-contain shadow-2xl border border-white/10">
-      </div>
-      <div class="h-12 flex items-center justify-center text-[11px] text-neutral-400 italic">
-        Clicca la "X" in alto per tornare alla homescreen.
-      </div>
+    <!-- INTERACTIVE FULLSCREEN PHOTO PREVIEW OVERLAY -->
+    <div id="photo-overlay" class="absolute inset-0 bg-black z-50 flex items-center justify-center overflow-hidden hidden">
+      <!-- Img Container that fills the screen perfectly -->
+      <img id="overlay-img" src="" class="w-full h-full object-contain">
+      
+      <!-- Premium translucent floating close button -->
+      <button onclick="closePhotoOverlay()" class="absolute top-14 right-4 bg-black/60 hover:bg-black/85 text-white/90 hover:text-white rounded-full p-2.5 backdrop-blur-md border border-white/10 shadow-xl transition-all active:scale-90 z-[60]">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
     </div>
-  </div>
-  
-  <!-- Floating Title & Indicator -->
-  <div class="mt-4 text-center">
-    <h1 class="text-sm font-semibold text-slate-400">iPhone iScreen App</h1>
-    <p class="text-[10px] text-slate-500 mt-0.5">Tutte le funzioni, foto e suoni sono attivi e salvati offline.</p>
   </div>
 
   <!-- Dynamic State and Logic Script -->
@@ -618,6 +618,12 @@ export default function App() {
     const dockItems = ${dockItemsJson};
     const totalPages = ${totalPages};
     let activePage = 0;
+
+    // Convert PascalCase/camelCase string to kebab-case for Lucide CDN
+    function toKebabCase(str) {
+      if (!str) return 'app-window';
+      return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    }
 
     // Update Clock
     function updateClock() {
@@ -636,7 +642,7 @@ export default function App() {
       
       for (let p = 0; p < totalPages; p++) {
         const pageDiv = document.createElement('div');
-        pageDiv.className = 'page-screen grid grid-cols-4 grid-rows-6 gap-x-2.5 gap-y-4 px-4';
+        pageDiv.className = 'page-screen grid grid-cols-4 grid-rows-6 gap-x-2.5 gap-y-4 px-4 h-full';
         
         // Get items for page p
         const pageItems = gridItems.filter(item => (item.page || 0) === p);
@@ -667,7 +673,7 @@ export default function App() {
                 let spanStyle = 'grid-column: ' + (item.col + 1) + ' / ' + (item.col + item.w + 1) + '; ';
                 spanStyle += 'grid-row: ' + (item.row + 1) + ' / ' + (item.row + item.h + 1) + ';';
                 itemDiv.setAttribute('style', spanStyle);
-                itemDiv.className = 'relative select-none flex flex-col justify-between';
+                itemDiv.className = 'relative select-none flex flex-col justify-between h-full';
 
                 // Populate based on widget or app
                 if (item.type === 'app') {
@@ -681,9 +687,10 @@ export default function App() {
                     });
                   }
 
+                  const iconKebab = toKebabCase(item.iconName || 'app-window');
                   const imgHtml = item.iconName === 'custom' && item.iconUrl 
                     ? '<img src="' + item.iconUrl + '" class="w-full h-full object-cover rounded-2xl">' 
-                    : '<div class="text-white"><i data-lucide="' + (item.iconName || 'app-window') + '" class="w-7 h-7"></i></div>';
+                    : '<div class="text-white"><i data-lucide="' + iconKebab + '" class="w-7 h-7"></i></div>';
                     
                   itemDiv.innerHTML = \`
                     <div class="w-full h-full flex flex-col items-center justify-center p-1">
@@ -740,7 +747,7 @@ export default function App() {
                   const photo2 = photos[2] ? '<img src="' + photos[2] + '" class="w-full h-full object-cover" onclick="openPhotoOverlay(\\'' + photos[2] + '\\')">' : '<div class="w-full h-full bg-neutral-300"></div>';
 
                   itemDiv.innerHTML = \`
-                    <div class="w-full h-[126px] rounded-[26px] bg-white/8 backdrop-blur-lg border border-white/18 shadow-xl flex items-center justify-around p-2 overflow-hidden">
+                    <div class="w-full h-full max-h-[145px] min-h-[120px] rounded-[26px] bg-white/8 backdrop-blur-lg border border-white/18 shadow-xl flex items-center justify-around p-2.5 overflow-hidden">
                       <!-- Polaroid 1 -->
                       <div class="w-[28%] bg-white p-1 pb-2 shadow-md rounded-[2px] rotate-[-5deg] translate-y-1 cursor-zoom-in aspect-[3/4] flex flex-col justify-between">
                         <div class="w-full aspect-square bg-neutral-100 overflow-hidden border border-black/5">\${photo0}</div>
@@ -783,9 +790,10 @@ export default function App() {
             });
           }
 
+          const iconKebab = toKebabCase(item.iconName || 'app-window');
           const iconHtml = item.iconName === 'custom' && item.iconUrl
             ? '<img src="' + item.iconUrl + '" class="w-full h-full object-cover">'
-            : '<i data-lucide="' + (item.iconName || 'app-window') + '" class="text-white w-6 h-6"></i>';
+            : '<i data-lucide="' + iconKebab + '" class="text-white w-6 h-6"></i>';
 
           dockItem.innerHTML = iconHtml;
           dockContainer.appendChild(dockItem);
@@ -881,9 +889,61 @@ export default function App() {
         document.getElementById('photo-overlay').classList.add('hidden');
       }
 
+      // Dynamic Scaling to fit any screen perfectly without content cut-off
+      function adjustScale() {
+        const wrapper = document.getElementById('iphone-wrapper');
+        if (!wrapper) return;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        
+        // Target dimensions of the simulator
+        const targetW = 390;
+        const targetH = 844;
+        
+        const scaleX = w / targetW;
+        const scaleY = h / targetH;
+        
+        // Add slight padding on desktop so the phone frame doesn't touch the screen edge
+        const padding = w < 640 ? 0.98 : 0.94; 
+        const scale = Math.min(scaleX, scaleY) * padding;
+        
+        wrapper.style.transform = 'scale(' + scale + ')';
+      }
+      
+      window.addEventListener('resize', adjustScale);
+
+      // Swipe gestures for touch screens
+      let touchStartX = 0;
+      let touchEndX = 0;
+      
+      const wrapper = document.getElementById('iphone-wrapper');
+      wrapper.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+      
+      wrapper.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      }, { passive: true });
+      
+      function handleSwipe() {
+        // Prevent swiping if a full-screen photo overlay is open
+        const overlay = document.getElementById('photo-overlay');
+        if (overlay && !overlay.classList.contains('hidden')) {
+          return;
+        }
+        const threshold = 45; // Minimum horizontal drag in pixels
+        if (touchEndX < touchStartX - threshold) {
+          nextPage();
+        } else if (touchEndX > touchStartX + threshold) {
+          prevPage();
+        }
+      }
+
       // Initialize
       window.onload = function() {
         renderSimulator();
+        adjustScale();
       }
   </script>
 </body>
